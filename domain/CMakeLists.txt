@@ -5,6 +5,7 @@ include_directories(${GLIB_INCLUDE_DIRS})
 
 add_library(domain STATIC
         src/database.c
+        src/mappers/yara_rule_mapper.c
 )
 
 target_include_directories(domain PUBLIC
