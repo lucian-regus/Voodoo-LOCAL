@@ -112,7 +112,9 @@ void database_run_non_query(Database *database, const char *query, GList *params
     SQLRETURN ret;
     SQLHSTMT hStmt;
 
-    ret = SQLAllocHandle(SQL_HANDLE_STMT, database->hDbc, &hStmt);
+    SQLHDBC connection = get_connection(database);
+
+    ret = SQLAllocHandle(SQL_HANDLE_STMT, connection, &hStmt);
     if (ret != SQL_SUCCESS && ret != SQL_SUCCESS_WITH_INFO) {
         printf("Error allocation SQL Statement Handle\n");
         database_disconnect(database);
@@ -149,6 +151,8 @@ void database_run_non_query(Database *database, const char *query, GList *params
     }
 
     SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
+
+    release_connection(database, connection);
 }
 
 GList* database_run_query(Database *database, const char *query, GList *params, RowMapperFunction row_mapper) {
@@ -196,6 +200,8 @@ GList* database_run_query(Database *database, const char *query, GList *params, 
     while (SQLFetch(hStmt) == SQL_SUCCESS) {
         result = g_list_append(result, row_mapper(hStmt));
     }
+
+    SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
 
     release_connection(database, connection);
 

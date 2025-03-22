@@ -3,4 +3,4 @@ add_executable(presentation
         src/configuration/configuration.c
 )
 
-target_link_libraries(presentation infrastructure)
+target_link_libraries(presentation PRIVATE infrastructure uuid)
