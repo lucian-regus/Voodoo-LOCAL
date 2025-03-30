@@ -19,4 +19,5 @@ typedef GList* (*RowMapperFunction)(const PGresult*);
 
 void database_cleanup(Database *database);
 Database* database_init();
-GList* run_query(Database* database, const char *query, RowMapperFunction row_mapper);
+GList* run_query(Database* database, const char *query, GList *params, RowMapperFunction row_mapper);
+void run_non_query(Database* database, const char *query, GList *params);

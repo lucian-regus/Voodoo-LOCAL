@@ -85,7 +85,7 @@ Database* database_init() {
     return database;
 }
 
-GList* run_query(Database* database, const char *query, RowMapperFunction row_mapper) {
+GList* run_query(Database* database, const char *query, GList *params, RowMapperFunction row_mapper) {
     if (database == NULL) {
         exit(1);
     }
@@ -95,7 +95,25 @@ GList* run_query(Database* database, const char *query, RowMapperFunction row_ma
         exit_on_error(database, connection);
     }
 
-    PGresult *response = PQexec(connection, query);
+    int param_count = g_list_length(params);
+    const char **param_values = (param_count > 0)
+        ? g_new0(const char*, param_count)
+        : NULL;
+
+    int i = 0;
+    for (GList *iter = params; iter; iter = iter->next, i++) {
+        param_values[i] = iter->data;
+    }
+
+    PGresult *response = PQexecParams(connection,
+                                      query,
+                                      param_count,
+                                      NULL,
+                                      param_values,
+                                      NULL,
+                                      NULL,
+                                      0);
+    g_free(param_values);
     if (PQresultStatus(response) != PGRES_TUPLES_OK) {
         PQclear(response);
         exit_on_error(database, connection);
@@ -108,4 +126,42 @@ GList* run_query(Database* database, const char *query, RowMapperFunction row_ma
     PQclear(response);
 
     return result;
+}
+
+void run_non_query(Database* database, const char *query, GList *params) {
+    if (database == NULL) {
+        exit(1);
+    }
+
+    PGconn *connection = get_connection(database);
+    if (PQstatus(connection) != CONNECTION_OK) {
+        exit_on_error(database, connection);
+    }
+
+    int param_count = g_list_length(params);
+    const char **param_values = g_new(const char*, param_count);
+
+    int i = 0;
+    for (GList *iter = params; iter != NULL; iter = iter->next, i++) {
+        param_values[i] = (const char*)iter->data;
+    }
+
+    PGresult *response = PQexecParams(connection,
+                                      query,
+                                      param_count,
+                                      NULL,
+                                      param_values,
+                                      NULL,
+                                      NULL,
+                                      0);
+
+    g_free(param_values);
+    if (PQresultStatus(response) != PGRES_COMMAND_OK) {
+        PQclear(response);
+        exit_on_error(database, connection);
+    }
+
+    release_connection(database, connection);
+
+    PQclear(response);
 }
